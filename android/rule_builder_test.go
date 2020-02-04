@@ -23,7 +23,6 @@ import (
 
 	"github.com/google/blueprint"
 
-	"android/soong/shared"
 )
 
 func pathContext() PathContext {
@@ -360,42 +359,6 @@ func TestRuleBuilder(t *testing.T) {
 		}
 	})
 
-	t.Run("sbox", func(t *testing.T) {
-		rule := NewRuleBuilder().Sbox(PathForOutput(ctx))
-		addCommands(rule)
-
-		wantCommands := []string{
-			"__SBOX_OUT_DIR__/DepFile Flag FlagWithArg=arg FlagWithDepFile=__SBOX_OUT_DIR__/depfile FlagWithInput=input FlagWithOutput=__SBOX_OUT_DIR__/output Input __SBOX_OUT_DIR__/Output Text Tool after command2 old cmd",
-			"command2 __SBOX_OUT_DIR__/depfile2 input2 __SBOX_OUT_DIR__/output2 tool2",
-			"command3 input3 __SBOX_OUT_DIR__/output2 __SBOX_OUT_DIR__/output3",
-		}
-
-		wantDepMergerCommand := "out/host/" + ctx.Config().PrebuiltOS() + "/bin/dep_fixer __SBOX_OUT_DIR__/DepFile __SBOX_OUT_DIR__/depfile __SBOX_OUT_DIR__/ImplicitDepFile __SBOX_OUT_DIR__/depfile2"
-
-		if g, w := rule.Commands(), wantCommands; !reflect.DeepEqual(g, w) {
-			t.Errorf("\nwant rule.Commands() = %#v\n                   got %#v", w, g)
-		}
-
-		if g, w := rule.Inputs(), wantInputs; !reflect.DeepEqual(w, g) {
-			t.Errorf("\nwant rule.Inputs() = %#v\n                 got %#v", w, g)
-		}
-		if g, w := rule.Outputs(), wantOutputs; !reflect.DeepEqual(w, g) {
-			t.Errorf("\nwant rule.Outputs() = %#v\n                  got %#v", w, g)
-		}
-		if g, w := rule.DepFiles(), wantDepFiles; !reflect.DeepEqual(w, g) {
-			t.Errorf("\nwant rule.DepFiles() = %#v\n                  got %#v", w, g)
-		}
-		if g, w := rule.Tools(), wantTools; !reflect.DeepEqual(w, g) {
-			t.Errorf("\nwant rule.Tools() = %#v\n                got %#v", w, g)
-		}
-		if g, w := rule.OrderOnlys(), wantOrderOnlys; !reflect.DeepEqual(w, g) {
-			t.Errorf("\nwant rule.OrderOnlys() = %#v\n                got %#v", w, g)
-		}
-
-		if g, w := rule.depFileMergerCmd(ctx, rule.DepFiles()).String(), wantDepMergerCommand; g != w {
-			t.Errorf("\nwant rule.depFileMergerCmd() = %#v\n                   got %#v", w, g)
-		}
-	})
 }
 
 func testRuleBuilderFactory() Module {
@@ -411,7 +374,6 @@ type testRuleBuilderModule struct {
 		Src string
 
 		Restat bool
-		Sbox   bool
 	}
 }
 
@@ -421,7 +383,7 @@ func (t *testRuleBuilderModule) GenerateAndroidBuildActions(ctx ModuleContext) {
 	outDep := PathForModuleOut(ctx, ctx.ModuleName()+".d")
 	outDir := PathForModuleOut(ctx)
 
-	testRuleBuilder_Build(ctx, in, out, outDep, outDir, t.properties.Restat, t.properties.Sbox)
+	testRuleBuilder_Build(ctx, in, out, outDep, outDir, t.properties.Restat, true)
 }
 
 type testRuleBuilderSingleton struct{}
@@ -441,9 +403,6 @@ func (t *testRuleBuilderSingleton) GenerateBuildActions(ctx SingletonContext) {
 func testRuleBuilder_Build(ctx BuilderContext, in Path, out, outDep, outDir WritablePath, restat, sbox bool) {
 	rule := NewRuleBuilder()
 
-	if sbox {
-		rule.Sbox(outDir)
-	}
 
 	rule.Command().Tool(PathForSource(ctx, "cp")).Input(in).Output(out).ImplicitDepFile(outDep)
 
@@ -465,11 +424,6 @@ func TestRuleBuilder_Build(t *testing.T) {
 			name: "foo",
 			src: "bar",
 			restat: true,
-		}
-		rule_builder_test {
-			name: "foo_sbox",
-			src: "bar",
-			sbox: true,
 		}
 	`
 
@@ -525,18 +479,6 @@ func TestRuleBuilder_Build(t *testing.T) {
 		check(t, ctx.ModuleForTests("foo", "").Rule("rule"),
 			"cp bar "+outFile,
 			outFile, outFile+".d", true, nil)
-	})
-	t.Run("sbox", func(t *testing.T) {
-		outDir := filepath.Join(buildDir, ".intermediates", "foo_sbox")
-		outFile := filepath.Join(outDir, "foo_sbox")
-		depFile := filepath.Join(outDir, "foo_sbox.d")
-		sbox := filepath.Join(buildDir, "host", config.PrebuiltOS(), "bin/sbox")
-		sandboxPath := shared.TempDirForOutDir(buildDir)
-
-		cmd := sbox + ` -c 'cp bar __SBOX_OUT_DIR__/foo_sbox' --sandbox-path ` + sandboxPath + " --output-root " + outDir + " --depfile-out " + depFile + " __SBOX_OUT_DIR__/foo_sbox"
-
-		check(t, ctx.ModuleForTests("foo_sbox", "").Rule("rule"),
-			cmd, outFile, depFile, false, []string{sbox})
 	})
 	t.Run("singleton", func(t *testing.T) {
 		outFile := filepath.Join(buildDir, "baz")
