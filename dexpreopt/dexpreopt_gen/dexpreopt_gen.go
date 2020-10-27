@@ -86,7 +86,7 @@ func main() {
 
 	globalSoongConfig, err := dexpreopt.ParseGlobalSoongConfig(ctx, globalSoongConfigData)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error parsing global Soong config %q: %s\n", *globalSoongConfigPath, err)
+		fmt.Fprintf(os.Stderr, "error loading global config %q: %s\n", *globalConfigPath, err)
 		os.Exit(2)
 	}
 
@@ -110,7 +110,7 @@ func main() {
 
 	moduleConfig, err := dexpreopt.ParseModuleConfig(ctx, moduleConfigData)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error parsing module config %q: %s\n", *moduleConfigPath, err)
+		fmt.Fprintf(os.Stderr, "error loading module config %q: %s\n", *moduleConfigPath, err)
 		os.Exit(2)
 	}
 

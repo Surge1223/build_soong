@@ -115,7 +115,7 @@ func runSoong(ctx Context, config Config) {
 		cmd := Command(ctx, config, "soong "+name,
 			config.PrebuiltBuildTool("ninja"),
 			"-d", "keepdepfile",
-			"-w", "dupbuild=err",
+			"-w", "dupbuild=warn",
 			"-j", strconv.Itoa(config.Parallel()),
 			"--frontend_file", fifo,
 			"-f", filepath.Join(config.SoongOutDir(), file))

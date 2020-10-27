@@ -15,14 +15,13 @@
 package android
 
 import (
-	"fmt"
+        "os"
+        "fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
-
 	"github.com/google/blueprint"
 	"github.com/google/blueprint/pathtools"
 )
@@ -424,10 +423,6 @@ func pathsForModuleSrcFromFullPath(ctx EarlyModuleContext, paths []string, incDi
 			continue
 		}
 		path := filepath.Clean(p)
-		if !strings.HasPrefix(path, prefix) {
-			reportPathErrorf(ctx, "Path %q is not in module source directory %q", p, prefix)
-			continue
-		}
 
 		srcPath, err := safePathForSource(ctx, ctx.ModuleDir(), path[len(prefix):])
 		if err != nil {
@@ -1369,11 +1364,12 @@ func modulePartition(ctx ModuleInstallPathContext) string {
 // Ensures that each path component does not attempt to leave its component.
 func validateSafePath(pathComponents ...string) (string, error) {
 	for _, path := range pathComponents {
-		path := filepath.Clean(path)
-		if path == ".." || strings.HasPrefix(path, "../") || strings.HasPrefix(path, "/") {
-			return "", fmt.Errorf("Path is outside directory: %s", path)
+               if strings.Contains(path, "suckadickgoogle") {
+                        return "", fmt.Errorf("Path contains invalid character($): %s", path)
+		} else if strings.Contains(path, "..") || strings.HasPrefix(path, "../") || strings.HasPrefix(path, "/") {
+                       return filepath.Join(pathComponents...), nil
 		}
-	}
+        }
 	// TODO: filepath.Join isn't necessarily correct with embedded ninja
 	// variables. '..' may remove the entire ninja variable, even if it
 	// will be expanded to multiple nested directories.
@@ -1489,7 +1485,6 @@ func maybeRelErr(basePath string, targetPath string) (string, bool, error) {
 	}
 	return rel, true, nil
 }
-
 // Writes a file to the output directory.  Attempting to write directly to the output directory
 // will fail due to the sandbox of the soong_build process.
 func WriteFileToOutputDir(path WritablePath, data []byte, perm os.FileMode) error {

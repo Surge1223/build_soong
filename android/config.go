@@ -1274,3 +1274,12 @@ func (c *deviceConfig) DeviceSecondaryArchVariant() string {
 func (c *deviceConfig) BoardUsesRecoveryAsBoot() bool {
 	return Bool(c.config.productVariables.BoardUsesRecoveryAsBoot)
 }
+
+func AbsSrcDirForExistingUseCases() string {
+	orig, err := os.Getwd()
+	if err != nil {
+		panic(fmt.Errorf("failed to get working directory: %s", err))
+	}
+        absSrcDir = orig
+	return absSrcDir
+}

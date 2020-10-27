@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
 	"github.com/google/blueprint"
 	"github.com/google/blueprint/pathtools"
 	"github.com/google/blueprint/proptools"
@@ -186,9 +185,6 @@ func (s *makeVarsSingleton) GenerateBuildActions(ctx SingletonContext) {
 	outFile := absolutePath(PathForOutput(ctx,
 		"make_vars"+proptools.String(ctx.Config().productVariables.Make_suffix)+".mk").String())
 
-	lateOutFile := absolutePath(PathForOutput(ctx,
-		"late"+proptools.String(ctx.Config().productVariables.Make_suffix)+".mk").String())
-
 	if ctx.Failed() {
 		return
 	}
@@ -216,12 +212,6 @@ func (s *makeVarsSingleton) GenerateBuildActions(ctx SingletonContext) {
 	outBytes := s.writeVars(vars)
 
 	if err := pathtools.WriteFileIfChanged(outFile, outBytes, 0666); err != nil {
-		ctx.Errorf(err.Error())
-	}
-
-	lateOutBytes := s.writeLate(phonies, dists)
-
-	if err := pathtools.WriteFileIfChanged(lateOutFile, lateOutBytes, 0666); err != nil {
 		ctx.Errorf(err.Error())
 	}
 
