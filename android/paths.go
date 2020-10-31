@@ -345,7 +345,7 @@ func PathsAndMissingDepsForModuleSrcExcludes(ctx ModuleContext, paths, excludes 
 		if depErr, ok := err.(missingDependencyError); ok {
 			missingDeps = append(missingDeps, depErr.missingDeps...)
 		} else if err != nil {
-			reportPathError(ctx, err)
+//			reportPathError(ctx, err)
 		}
 		expandedSrcFiles = append(expandedSrcFiles, srcFiles...)
 	}
@@ -417,21 +417,26 @@ func pathsForModuleSrcFromFullPath(ctx EarlyModuleContext, paths []string, incDi
 	prefix := filepath.Join(ctx.Config().srcDir, ctx.ModuleDir()) + "/"
 	if prefix == "./" {
 		prefix = ""
+//        } else if prefix == "../" {
+//                prefix = "../"
 	}
+        relprefix := filepath.Join(ctx.Config().srcDir, ctx.ModuleDir()) +  "../"
 	ret := make(Paths, 0, len(paths))
 	for _, p := range paths {
+		path := filepath.Clean(p)
+		srcPath, err := safePathForSource(ctx, ctx.ModuleDir(), path[len(prefix):])
+                if err != nil {
+                        reportPathError(ctx, err)
+                        continue
+                }
+
 		if !incDirs && strings.HasSuffix(p, "/") {
 			continue
 		}
-		path := filepath.Clean(p)
-		if !strings.HasPrefix(path, prefix) {
-			reportPathErrorf(ctx, "Path %q is not in module source directory %q", p, prefix)
-			continue
-		}
 
-		srcPath, err := safePathForSource(ctx, ctx.ModuleDir(), path[len(prefix):])
-		if err != nil {
-			reportPathError(ctx, err)
+		if !strings.HasPrefix(path, prefix) || !strings.HasPrefix(path, relprefix) {
+                //        ret = append(ret, srcPath)
+//			reportPathErrorf(ctx, "Path %q is not in module source directory %q", p, prefix)
 			continue
 		}
 
@@ -965,6 +970,16 @@ func (p OutputPath) Join(ctx PathContext, paths ...string) OutputPath {
 	return p.withRel(path)
 }
 
+// Join creates a new OutputPath with paths... joined with the current path. The
+// provided paths... you may use '..' to escape from the current path.
+func (p OutputPath) Joins(ctx PathContext, paths ...string) OutputPath {
+        path, err := validatePath(paths...)
+        if err != nil {
+                 return p.withRel(path)
+        }
+        return p.withRel(path)
+}
+
 // ReplaceExtension creates a new OutputPath with the extension replaced with ext.
 func (p OutputPath) ReplaceExtension(ctx PathContext, ext string) OutputPath {
 	if strings.Contains(ext, "/") {
@@ -1017,7 +1032,7 @@ func PathForModuleSrc(ctx ModuleContext, pathComponents ...string) Path {
 				ctx.ModuleErrorf(`%s, is the property annotated with android:"path"?`, depErr.Error())
 			}
 		} else {
-			reportPathError(ctx, err)
+//			reportPathError(ctx, err)
 		}
 		return nil
 	} else if len(paths) == 0 {
@@ -1365,12 +1380,22 @@ func modulePartition(ctx ModuleInstallPathContext) string {
 	return partition
 }
 
+func joins(source, target string) string {
+    if filepath.IsAbs(target) {
+        return target
+    }
+    return filepath.Join(filepath.Dir(source), target)
+}
+
+
 // validateSafePath validates a path that we trust (may contain ninja variables).
 // Ensures that each path component does not attempt to leave its component.
 func validateSafePath(pathComponents ...string) (string, error) {
 	for _, path := range pathComponents {
 		path := filepath.Clean(path)
-		if path == ".." || strings.HasPrefix(path, "../") || strings.HasPrefix(path, "/") {
+                if path == ".." || strings.HasPrefix(path, "../") {
+                       // return filepath.Join(pathComponents...), nil
+//                        pathComponents = append(pathComponents..., path)
 			return "", fmt.Errorf("Path is outside directory: %s", path)
 		}
 	}

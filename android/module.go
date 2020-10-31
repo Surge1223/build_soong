@@ -1310,7 +1310,7 @@ type earlyModuleContext struct {
 
 func (e *earlyModuleContext) Glob(globPattern string, excludes []string) Paths {
 	ret, err := e.GlobWithDeps(globPattern, excludes)
-	if err != nil {
+	 if err != nil {
 		e.ModuleErrorf("glob: %s", err.Error())
 	}
 	return pathsForModuleSrcFromFullPath(e, ret, true)

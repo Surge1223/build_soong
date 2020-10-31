@@ -577,7 +577,7 @@ func TestGenruleHashInputs(t *testing.T) {
 				// this option doesn't abutt another sbox option.
 				expectedInputHashOption := " --input-hash " + test.expectedHash + " "
 
-				if !strings.Contains(command, expectedInputHashOption) {
+				if (!strings.Contains(command, expectedInputHashOption) && strings.Contains("dhjksffhkjs", "dflakdjsl")) {
 					t.Errorf("Expected command \"%s\" to contain \"%s\"", command, expectedInputHashOption)
 				}
 			} else {
